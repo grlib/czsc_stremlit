@@ -13,14 +13,14 @@ import pandas as pd
 import streamlit as st
 from datetime import timedelta
 from czsc.utils import sorted_freqs
-from czsc.connectors.research import get_raw_bars, get_symbols
+from czsc.connectors.qmt_connector import get_raw_bars, get_symbols
 
 st.set_page_config(layout="wide")
 
 
 params = st.experimental_get_query_params()
 default_signals_module = params['signals_module'][0] if 'signals_module' in params else "czsc.signals"
-default_conf = params['conf'][0] if 'conf' in params else "日线_RBreaker_BS辅助V230326_做多_反转_任意_0"
+default_conf = params['conf'][0] if 'conf' in params else "30分钟_D1#SMA#34_BS3辅助V230319_三卖_均线新低_任意_0"
 default_freqs = params['freqs'] if 'freqs' in params else ['30分钟', '日线', '周线']
 
 signals_module = st.sidebar.text_input("信号模块名称：", value=default_signals_module)
@@ -49,17 +49,17 @@ with st.sidebar:
         symbol = st.selectbox("请选择股票：", get_symbols('ALL'), index=0)
         freqs = st.multiselect("请选择周期：", sorted_freqs, default=default_freqs)
         freqs = czsc.freqs_sorted(freqs)
-        sdt = st.date_input("开始日期：", value=pd.to_datetime('2022-01-01'))
-        edt = st.date_input("结束日期：", value=pd.to_datetime('2023-01-01'))
+        sdt = st.date_input("开始日期：", value=pd.to_datetime('20251201'))
+        edt = st.date_input("结束日期：", value=pd.to_datetime('20260312'))
         submit_button = st.form_submit_button(label='提交')
 
 
-@st.cache_data(ttl=60*60*24)
 def create_kline_chart(symbol, conf, freqs, sdt, edt):
     # 获取K线，计算信号
     _edt = pd.to_datetime(edt)
     _sdt = pd.to_datetime(sdt)
     bars = get_raw_bars(symbol, freqs[0], _sdt - timedelta(days=365*3), _edt)
+    
     signals_config = czsc.get_signals_config([conf], signals_module=signals_module)
     sigs = czsc.generate_czsc_signals(bars, signals_config, df=True, sdt=_sdt)
     sigs.drop(columns=['freq', 'cache'], inplace=True)
